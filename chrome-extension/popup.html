@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Transcript</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <rect width="24" height="24" rx="6" fill="#FF0000"/>
+          <polygon points="10,8 10,16 17,12" fill="white"/>
+        </svg>
+        <span>Transcript Extractor</span>
+      </div>
+      <div id="status-badge" class="badge badge--idle">Ready</div>
+    </header>
+
+    <div id="idle-state" class="state">
+      <p class="hint">Navigate to a YouTube video, then extract its transcript.</p>
+      <button id="extract-btn" class="btn btn--primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 12h6M9 16h6M9 8h6M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/>
+        </svg>
+        Extract Transcript
+      </button>
+    </div>
+
+    <div id="loading-state" class="state hidden">
+      <div class="spinner"></div>
+      <p>Fetching transcript...</p>
+    </div>
+
+    <div id="error-state" class="state hidden">
+      <div class="error-icon">✕</div>
+      <p id="error-message"></p>
+      <button id="retry-btn" class="btn btn--secondary">Try Again</button>
+    </div>
+
+    <div id="result-state" class="state hidden">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+          </svg>
+          <input id="search-input" type="text" placeholder="Search transcript..." />
+        </div>
+        <div class="actions">
+          <button id="copy-btn" class="btn btn--icon" title="Copy full transcript">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+          </button>
+          <button id="new-extract-btn" class="btn btn--icon" title="Re-extract">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="meta" id="meta-info"></div>
+
+      <div id="transcript-list" class="transcript-list"></div>
+
+      <div id="copy-toast" class="toast hidden">Copied to clipboard!</div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

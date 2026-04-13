@@ -25,3 +25,15 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+
+## Chrome Extension
+
+A standalone Chrome extension lives in `/chrome-extension/`. It extracts transcripts from YouTube videos.
+
+**Files:**
+- `manifest.json` — Manifest V3 extension config
+- `content.js` — Content script that runs on YouTube, fetches transcript XML via YouTube's caption API
+- `popup.html/css/js` — The extension popup UI with search, copy, and playback sync
+- `icons/` — Extension icons (16px, 48px, 128px)
+
+**Load in Chrome:** `chrome://extensions` → Developer mode → Load unpacked → select `chrome-extension/`
