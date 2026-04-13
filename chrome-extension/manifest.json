@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Transcript Extractor",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Extract transcripts from YouTube videos on command",
   "permissions": [
     "activeTab",
@@ -12,6 +12,9 @@
   "host_permissions": [
     "https://www.youtube.com/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -21,12 +24,6 @@
     }
   },
   "content_scripts": [
-    {
-      "matches": ["https://www.youtube.com/watch*"],
-      "js": ["page-bridge.js"],
-      "run_at": "document_idle",
-      "world": "MAIN"
-    },
     {
       "matches": ["https://www.youtube.com/watch*"],
       "js": ["content.js"],

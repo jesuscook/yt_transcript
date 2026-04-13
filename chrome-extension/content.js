@@ -4,27 +4,26 @@ function getVideoId() {
   return url.searchParams.get('v');
 }
 
-function readCaptionTracksFromPage() {
+function getCaptionTracksFromBackground() {
   return new Promise((resolve) => {
-    document.addEventListener('__yt_tracks_result__', function handler(e) {
-      document.removeEventListener('__yt_tracks_result__', handler);
-      resolve(e.detail && e.detail.tracks ? e.detail.tracks : null);
+    chrome.runtime.sendMessage({ action: 'getCaptionTracks' }, (response) => {
+      if (chrome.runtime.lastError) {
+        resolve(null);
+        return;
+      }
+      resolve(response && response.tracks ? response.tracks : null);
     });
-
-    document.dispatchEvent(new CustomEvent('__yt_get_tracks__'));
-
-    setTimeout(() => resolve(null), 4000);
+    setTimeout(() => resolve(null), 5000);
   });
 }
 
 async function fetchTranscript() {
   try {
-    const tracks = await readCaptionTracksFromPage();
+    const tracks = await getCaptionTracksFromBackground();
 
     if (!tracks || tracks.length === 0) {
       return {
-        error:
-          'No captions found for this video. Try a video that has subtitles or auto-generated captions enabled.'
+        error: 'No captions found for this video. Make sure the video has subtitles or auto-generated captions, then refresh the page and try again.'
       };
     }
 
