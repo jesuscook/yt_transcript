@@ -1,44 +1,55 @@
 
-async function getVideoId() {
+function getVideoId() {
   const url = new URL(window.location.href);
   return url.searchParams.get('v');
 }
 
-async function fetchTranscriptViaYouTubeAPI(videoId) {
-  try {
-    const pageResponse = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-      credentials: 'include'
+function readCaptionTracksFromPage() {
+  return new Promise((resolve) => {
+    document.addEventListener('__yt_tracks_result__', function handler(e) {
+      document.removeEventListener('__yt_tracks_result__', handler);
+      resolve(e.detail && e.detail.tracks ? e.detail.tracks : null);
     });
-    const html = await pageResponse.text();
 
-    const captionsMatch = html.match(/"captions":\s*(\{.*?"playerCaptionsTracklistRenderer".*?\})\s*,\s*"videoDetails"/s);
-    if (!captionsMatch) {
-      return null;
-    }
+    document.dispatchEvent(new CustomEvent('__yt_get_tracks__'));
 
-    let captionData;
-    try {
-      captionData = JSON.parse(captionsMatch[1]);
-    } catch (e) {
-      return null;
-    }
+    setTimeout(() => resolve(null), 4000);
+  });
+}
 
-    const tracks = captionData?.playerCaptionsTracklistRenderer?.captionTracks;
+async function fetchTranscript() {
+  try {
+    const tracks = await readCaptionTracksFromPage();
+
     if (!tracks || tracks.length === 0) {
-      return null;
+      return {
+        error:
+          'No captions found for this video. Try a video that has subtitles or auto-generated captions enabled.'
+      };
     }
 
-    const englishTrack = tracks.find(t =>
-      t.languageCode === 'en' || t.languageCode === 'en-US'
-    ) || tracks[0];
+    const englishTrack =
+      tracks.find(t => t.languageCode === 'en') ||
+      tracks.find(t => t.languageCode && t.languageCode.startsWith('en')) ||
+      tracks[0];
 
-    const transcriptUrl = englishTrack.baseUrl;
-    const transcriptResponse = await fetch(transcriptUrl);
+    if (!englishTrack || !englishTrack.baseUrl) {
+      return { error: 'Could not find a usable caption track.' };
+    }
+
+    const transcriptResponse = await fetch(englishTrack.baseUrl);
+    if (!transcriptResponse.ok) {
+      return { error: 'Failed to download the transcript file.' };
+    }
+
     const transcriptXml = await transcriptResponse.text();
-
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(transcriptXml, 'text/xml');
     const textElements = xmlDoc.querySelectorAll('text');
+
+    if (textElements.length === 0) {
+      return { error: 'Transcript file was empty or could not be parsed.' };
+    }
 
     const segments = [];
     textElements.forEach(el => {
@@ -51,57 +62,48 @@ async function fetchTranscriptViaYouTubeAPI(videoId) {
         .replace(/&#39;/g, "'")
         .replace(/\n/g, ' ')
         .trim();
-
-      if (text) {
-        segments.push({ start, text });
-      }
+      if (text) segments.push({ start, text });
     });
 
-    return segments;
-  } catch (err) {
-    return null;
-  }
-}
+    const trackLabel =
+      (englishTrack.name && englishTrack.name.simpleText) ||
+      englishTrack.languageCode;
 
-function formatTime(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
+    return { segments, trackLabel };
+  } catch (err) {
+    return { error: 'Unexpected error: ' + err.message };
+  }
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'extractTranscript') {
-    (async () => {
-      const videoId = await getVideoId();
-      if (!videoId) {
-        sendResponse({ error: 'No YouTube video found on this page.' });
-        return;
-      }
+    const videoId = getVideoId();
+    if (!videoId) {
+      sendResponse({ error: 'No YouTube video found on this page.' });
+      return true;
+    }
 
-      const segments = await fetchTranscriptViaYouTubeAPI(videoId);
-      if (!segments || segments.length === 0) {
-        sendResponse({ error: 'No transcript available for this video. The video may not have captions.' });
-        return;
+    fetchTranscript().then(result => {
+      if (result.error) {
+        sendResponse({ error: result.error });
+      } else {
+        sendResponse({ segments: result.segments, trackLabel: result.trackLabel, videoId });
       }
+    });
 
-      sendResponse({ segments, videoId });
-    })();
     return true;
   }
 
   if (request.action === 'seekTo') {
     const video = document.querySelector('video');
-    if (video) {
-      video.currentTime = request.time;
-    }
+    if (video) video.currentTime = request.time;
     sendResponse({ ok: true });
     return true;
   }
 
   if (request.action === 'getCurrentTime') {
     const video = document.querySelector('video');
-    const time = video ? video.currentTime : 0;
-    sendResponse({ time });
+    sendResponse({ time: video ? video.currentTime : 0 });
     return true;
   }
 });

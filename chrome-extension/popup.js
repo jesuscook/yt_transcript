@@ -113,7 +113,7 @@ function startTimeSync() {
   }, 1000);
 }
 
-function showTranscript(segments) {
+function showTranscript(segments, trackLabel) {
   allSegments = segments;
   filteredSegments = [];
 
@@ -121,7 +121,8 @@ function showTranscript(segments) {
     ? formatTime(segments[segments.length - 1].start)
     : '0:00';
 
-  $('meta-info').textContent = `${segments.length} segments · up to ${totalTime}`;
+  const label = trackLabel ? ` · ${trackLabel}` : '';
+  $('meta-info').textContent = `${segments.length} segments · up to ${totalTime}${label}`;
 
   renderSegments(segments);
   showState('result');
@@ -164,7 +165,7 @@ function doExtract() {
         return;
       }
 
-      showTranscript(response.segments);
+      showTranscript(response.segments, response.trackLabel);
     });
   });
 }
